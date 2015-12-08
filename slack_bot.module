@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function slack_bot_menu() {
+    $items = array();
+    $items['admin/config/services/slack-bot'] = array(
+        'title' => 'Configuration of the Slack bot',
+        'description' => 'Adjust slack settings.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('slack_bot_configure_form'),
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_NORMAL_ITEM,
+        'file' => 'includes/slack_bot.admin.inc',
+    );
+    $items['user/%user/slack-bot'] = array(
+        'title' => 'Slack',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('slack_bot_user_configure_form', 1),
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_LOCAL_TASK,
+        'file' => 'includes/slack_bot.admin.inc',
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_cron().
+ */
+function slack_bot_cron() {
+    module_load_include('inc', 'slack_bot');
+    if ($client = slack_bot_get_client()) {
+        $users = user_load_multiple(array(), array('status' => 1));
+        if (!empty($users)) {
+            foreach ($users as $user) {
+                if ($dob = slack_bot_get_user_dob($user)) {
+                    if ((date('d', strtotime('+1 day')) == date('d', $dob)) && (date('m', strtotime('+1 day')) == date('m', $dob))) {
+                        slack_bot_create_group($client, $user);
+                    }
+                    elseif ((date('d', strtotime('-1 day')) == date('d', $dob)) && (date('m', strtotime('-1 day')) == date('m', $dob))) {
+                        slack_bot_remove_group($client, $user);
+                    }
+                }
+            }
+        }
+    }
+}
