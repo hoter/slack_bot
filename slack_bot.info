@@ -1,0 +1,6 @@
+name = Slack bot
+description = Happy Birthday bot for Slack
+core = 7.x
+dependencies[] = composer_manager
+
+configure = admin/config/services/slack-bot
